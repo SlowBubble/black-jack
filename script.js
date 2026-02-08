@@ -83,6 +83,12 @@ class BlackjackGame {
     return val;
   }
 
+  getCardNarrative(card) {
+    const name = this.getCardName(card);
+    const article = (name === 'Ace' || name === '8') ? 'an' : 'a';
+    return `${article} ${name}`;
+  }
+
   init() {
     this.createShoe();
     this.cacheDOM();
@@ -330,7 +336,7 @@ class BlackjackGame {
     this.gameState = 'playing';
     this.updateUI();
 
-    await this.speak(`You are dealt a ${this.getCardName(p1)} and a ${this.getCardName(p2)}.`);
+    await this.speak(`You are dealt ${this.getCardNarrative(p1)} and ${this.getCardNarrative(p2)}.`);
 
     this.isBusy = false;
     this.updateUI();
@@ -360,7 +366,7 @@ class BlackjackGame {
     hand.push(card);
     this.updateUI();
 
-    await this.speak(`You are dealt a ${this.getCardName(card)}.`);
+    await this.speak(`You are dealt ${this.getCardNarrative(card)}.`);
 
     this.isBusy = false;
 
@@ -458,14 +464,14 @@ class BlackjackGame {
     this.updateCount(hiddenCard);
     this.dom.messageArea.innerText = "Dealer reveals";
     this.updateUI();
-    await this.speak(`The dealer reveals a ${this.getCardName(hiddenCard)}.`);
+    await this.speak(`The dealer reveals ${this.getCardNarrative(hiddenCard)}.`);
 
     while (this.calculateScore(this.dealerHand) < 17) {
       this.dom.messageArea.innerText = "Dealer chooses to Hit";
       const card = this.drawCard();
       this.dealerHand.push(card);
       this.updateUI();
-      await this.speak(`The dealer hits and is dealt a ${this.getCardName(card)}.`);
+      await this.speak(`The dealer hits and is dealt ${this.getCardNarrative(card)}.`);
     }
 
     const score = this.calculateScore(this.dealerHand);
