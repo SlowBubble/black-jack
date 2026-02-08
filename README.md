@@ -1,6 +1,9 @@
 # Goal
 - I want to simulate card counting of heads-up black jack game in the casinos
 
+# m1f
+- Let's add a query param pause_dealer=1 to pause the dealer's action and let the user to press space to continue
+
 # m1e
 - Let's remove the suits when displaying the cards
   - Use color instead (red, black, green and blue)

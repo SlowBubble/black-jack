@@ -144,6 +144,18 @@ body {
   color: var(--error-color);
 }
 
+.card.black {
+  color: #1d1d1f;
+}
+
+.card.blue {
+  color: #007aff;
+}
+
+.card.green {
+  color: #34c759;
+}
+
 .card.hidden {
   background: linear-gradient(135deg, #cbd5e1, #94a3b8);
   color: transparent;

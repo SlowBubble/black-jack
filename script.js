@@ -655,14 +655,23 @@ class BlackjackGame {
 
   renderHand(container, hand, hideSecond = false) {
     container.innerHTML = '';
+    const suitToColor = {
+      '♠': 'black',
+      '♥': 'red',
+      '♣': 'green',
+      '♦': 'blue'
+    };
+
     hand.forEach((card, index) => {
       const cardEl = document.createElement('div');
-      cardEl.className = `card ${['♥', '♦'].includes(card.suit) ? 'red' : ''}`;
+      const cardColor = suitToColor[card.suit] || 'black';
+      cardEl.className = `card ${cardColor}`;
+
       if (hideSecond && index === 1) {
         cardEl.classList.add('hidden');
         cardEl.innerHTML = `<div style="height:100%; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.2)">?</div>`;
       } else {
-        cardEl.innerHTML = `<div>${card.value}</div><div style="align-self: flex-end">${card.suit}</div>`;
+        cardEl.innerHTML = `<div style="height:100%; display:flex; align-items:center; justify-content:center;">${card.value}</div>`;
       }
       container.appendChild(cardEl);
     });
