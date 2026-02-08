@@ -1,9 +1,24 @@
 # Goal
 - I want to simulate card counting of heads-up black jack game in the casinos
 
+# m1d
+- Instead of pausing a fixed amount of time, let's redesign the whole flow to narrate (using speech synthesis with a British guy) to clarify things
+  - When moving from the "Deal" action, utter "You are dealt a $x and a $y." 
+  - When moving from the "Hit" action, utter "You are dealt a $x." 
+  - When moving from the "Stand" action, utter "You stand with a score of $x." 
+  - When moving from the "Double" action, utter "You double down with a score of $x." 
+  - When moving from the "Split" action, utter "You split with a score of $x for hand 1 and $y for hand 2." 
+  - When the dealer reveals a card, utter "The dealer reveals a $x." 
+  - When the dealer hits, utter "The dealer hits and is dealt a $x." 
+  - When the dealer stands, utter "The dealer stands with a score of $x." 
+  - When the player wins, utter "You win because you have a score of $x and the dealer has a score of $y." 
+    - Or "becuase the dealer busts." 
+  - When the player loses, utter "You lose because you have a score of $x and the dealer has a score of $y." 
+    - Or "becuase you bust."
+
 # m1c
-- Instead of pausing a fixed amount of time, let's narrate (using speech synthesis with a British guy) and then move on to the next action
-  - When moving from the "Deal" action, utter "You are dealt $x and $y, which sums up to $z." 
+- Display 10 instead of J, Q, K for easier understanding
+- Display 1 instead of A for easier understanding
 
 # m1b
 - Display all possible score if there are > 0 aces

@@ -22,6 +22,9 @@ class BlackjackGame {
     this.gameState = 'betting'; // betting, playing, resolved, busy
     this.isBusy = false;
 
+    const urlParams = new URLSearchParams(window.location.search);
+    this.numbersOnly = urlParams.get('numbers_only') === '1';
+
     this.init();
   }
 
@@ -91,7 +94,9 @@ class BlackjackGame {
 
   createShoe() {
     const suits = ['♠', '♣', '♥', '♦'];
-    const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    const values = this.numbersOnly
+      ? ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '10', '10', '10']
+      : ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
     this.deck = [];
 
     for (let i = 0; i < this.shoeSize; i++) {
@@ -129,7 +134,7 @@ class BlackjackGame {
     const val = card.value;
     if (['2', '3', '4', '5', '6'].includes(val)) {
       this.runningCount++;
-    } else if (['10', 'J', 'Q', 'K', 'A'].includes(val)) {
+    } else if (['10', 'J', 'Q', 'K', 'A', '1'].includes(val)) {
       this.runningCount--;
     }
   }
@@ -140,18 +145,18 @@ class BlackjackGame {
     const hand = this.playerHands[this.currentHandIndex];
     const dealerUpCard = this.dealerHand[0];
     const playerScore = this.calculateScore(hand);
-    const hasAce = hand.some(c => c.value === 'A') && playerScore <= 21;
+    const hasAce = hand.some(c => c.value === '1' || c.value === 'A') && playerScore <= 21;
 
     let dealerValue = parseInt(dealerUpCard.value);
     if (['J', 'Q', 'K'].includes(dealerUpCard.value)) dealerValue = 10;
-    if (dealerUpCard.value === 'A') dealerValue = 11;
+    if (dealerUpCard.value === '1' || dealerUpCard.value === 'A') dealerValue = 11;
 
     const tc = parseFloat(this.getTrueCount());
 
     // Pair Splitting
     if (hand.length === 2 && hand[0].value === hand[1].value && this.balance >= this.currentBet) {
       const pair = hand[0].value;
-      if (pair === 'A' || pair === '8') return 'Split';
+      if (pair === '1' || pair === 'A' || pair === '8') return 'Split';
       if (['2', '3', '7'].includes(pair) && dealerValue <= 7) return 'Split';
       if (pair === '4' && (dealerValue === 5 || dealerValue === 6)) return 'Split';
       if (pair === '6' && dealerValue <= 6) return 'Split';
@@ -190,7 +195,7 @@ class BlackjackGame {
     let score = 0;
     let aces = 0;
     for (let card of hand) {
-      if (card.value === 'A') {
+      if (card.value === '1' || card.value === 'A') {
         aces++;
         score += 11;
       } else if (['J', 'Q', 'K'].includes(card.value)) {
@@ -210,7 +215,7 @@ class BlackjackGame {
     let lowScore = 0;
     let aces = 0;
     for (let card of hand) {
-      if (card.value === 'A') {
+      if (card.value === '1' || card.value === 'A') {
         aces++;
         lowScore += 1;
       } else if (['J', 'Q', 'K'].includes(card.value)) {
