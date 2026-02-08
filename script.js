@@ -400,7 +400,7 @@ class BlackjackGame {
     this.gameState = 'resolved';
     const netChange = this.balance - this.roundStartingBalance;
     const changeSign = netChange >= 0 ? '+' : '';
-    const message = results.join(' | ') + ` [${this.balance}${changeSign}${netChange}]`;
+    const message = results.join(' | ') + ` [${this.roundStartingBalance}${changeSign}${netChange}]`;
     this.dom.messageArea.innerHTML = message;
 
     if (message.includes('Win')) {
