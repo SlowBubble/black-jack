@@ -25,7 +25,62 @@ class BlackjackGame {
     const urlParams = new URLSearchParams(window.location.search);
     this.numbersOnly = urlParams.get('numbers_only') === '1';
 
+    this.voice = null;
+    this.initVoice();
     this.init();
+  }
+
+  initVoice() {
+    const findVoice = () => {
+      const voices = window.speechSynthesis.getVoices();
+      // Try to find a British male voice
+      this.voice = voices.find(v => (v.lang === 'en-GB' || v.lang === 'en_GB') && v.name.toLowerCase().includes('male'))
+        || voices.find(v => v.lang.includes('GB') && v.name.toLowerCase().includes('male'))
+        || voices.find(v => (v.lang === 'en-GB' || v.lang === 'en_GB'))
+        || voices.find(v => v.lang.includes('GB'))
+        || voices.find(v => v.lang.includes('en'))
+        || voices[0];
+    };
+    if ('speechSynthesis' in window) {
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = findVoice;
+      }
+      findVoice();
+    }
+  }
+
+  async speak(text) {
+    if (!('speechSynthesis' in window)) return;
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    return new Promise((resolve) => {
+      const utterance = new SpeechSynthesisUtterance(text);
+      if (this.voice) utterance.voice = this.voice;
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      utterance.onend = () => resolve();
+      utterance.onerror = (e) => {
+        console.error('SpeechSynthesis error', e);
+        resolve();
+      };
+
+      window.speechSynthesis.speak(utterance);
+
+      // Safety timeout in case onend never fires
+      setTimeout(resolve, 8000);
+    });
+  }
+
+  getCardName(card) {
+    const val = card.value;
+    if (val === 'A' || val === '1') return 'Ace';
+    if (val === 'J') return 'Jack';
+    if (val === 'Q') return 'Queen';
+    if (val === 'K') return 'King';
+    return val;
   }
 
   init() {
@@ -60,7 +115,7 @@ class BlackjackGame {
   }
 
   bindEvents() {
-    this.dom.dealBtn.addEventListener('click', () => this.deal());
+    this.dom.dealBtn.addEventListener('click', async () => await this.deal());
     this.dom.hitBtn.addEventListener('click', () => this.hit());
     this.dom.standBtn.addEventListener('click', () => this.stand());
     this.dom.doubleBtn.addEventListener('click', () => this.doubleDown());
@@ -75,7 +130,7 @@ class BlackjackGame {
     });
   }
 
-  handleSpaceShortcut() {
+  async handleSpaceShortcut() {
     if (this.isBusy) return;
     if (this.gameState === 'playing') {
       const action = this.getRecommendedAction();
@@ -84,7 +139,7 @@ class BlackjackGame {
       else if (action === 'Double' && !this.dom.doubleBtn.disabled) this.doubleDown();
       else if (action === 'Split' && !this.dom.splitBtn.disabled) this.split();
     } else if (this.gameState === 'resolved' || this.gameState === 'betting') {
-      this.deal();
+      await this.deal();
     }
   }
 
@@ -235,13 +290,15 @@ class BlackjackGame {
     }
   }
 
-  deal() {
+  async deal() {
+    if (this.isBusy) return;
     const bet = parseInt(this.dom.betAmount.value);
     if (isNaN(bet) || bet <= 0 || bet > this.balance) {
       alert('Invalid bet amount');
       return;
     }
 
+    this.isBusy = true;
     this.roundStartingBalance = this.balance;
 
     if (this.deck.length < (52 * this.shoeSize * this.shuffleThreshold)) {
@@ -260,18 +317,28 @@ class BlackjackGame {
     this.bets = [bet];
 
     // Initial deal
-    this.playerHands[0].push(this.drawCard());
-    this.dealerHand.push(this.drawCard());
-    this.playerHands[0].push(this.drawCard());
-    this.dealerHand.push(this.drawCard(false)); // Second card hidden
+    const p1 = this.drawCard();
+    const d1 = this.drawCard();
+    const p2 = this.drawCard();
+    const d2 = this.drawCard(false); // Second card hidden
+
+    this.playerHands[0].push(p1);
+    this.dealerHand.push(d1);
+    this.playerHands[0].push(p2);
+    this.dealerHand.push(d2);
 
     this.gameState = 'playing';
+    this.updateUI();
+
+    await this.speak(`You are dealt a ${this.getCardName(p1)} and a ${this.getCardName(p2)}.`);
+
+    this.isBusy = false;
     this.updateUI();
 
     // Check for natural Blackjack
     const playerScore = this.calculateScore(this.playerHands[0]);
     if (playerScore === 21) {
-      this.stand();
+      await this.stand();
     }
   }
 
@@ -288,11 +355,14 @@ class BlackjackGame {
     this.dom.messageArea.innerText = `${heroText} chooses to Hit`;
     this.updateUI();
 
-    await this.sleep(this.heroDelay);
-    this.isBusy = false;
-
     const hand = this.playerHands[this.currentHandIndex];
-    hand.push(this.drawCard());
+    const card = this.drawCard();
+    hand.push(card);
+    this.updateUI();
+
+    await this.speak(`You are dealt a ${this.getCardName(card)}.`);
+
+    this.isBusy = false;
 
     if (this.calculateScore(hand) >= 21) {
       await this.nextHand();
@@ -308,7 +378,9 @@ class BlackjackGame {
     this.dom.messageArea.innerText = `${heroText} chooses to Stand`;
     this.updateUI();
 
-    await this.sleep(this.heroDelay);
+    const score = this.calculateScore(this.playerHands[this.currentHandIndex]);
+    await this.speak(`You stand with a score of ${score}.`);
+
     this.isBusy = false;
     await this.nextHand();
   }
@@ -329,15 +401,22 @@ class BlackjackGame {
     this.dom.messageArea.innerText = `${heroText} chooses to Double`;
     this.updateUI();
 
-    await this.sleep(this.heroDelay);
-    this.isBusy = false;
-
     const hand = this.playerHands[this.currentHandIndex];
-    if (hand.length !== 2) return;
+    if (hand.length !== 2) {
+      this.isBusy = false;
+      return;
+    }
 
     this.balance -= this.currentBet;
     this.bets[this.currentHandIndex] *= 2;
-    hand.push(this.drawCard());
+    const card = this.drawCard();
+    hand.push(card);
+    this.updateUI();
+
+    const score = this.calculateScore(hand);
+    await this.speak(`You double down with a score of ${score}.`);
+
+    this.isBusy = false;
     await this.nextHand();
   }
 
@@ -351,9 +430,6 @@ class BlackjackGame {
     this.dom.messageArea.innerText = `${heroText} chooses to Split`;
     this.updateUI();
 
-    await this.sleep(this.heroDelay);
-    this.isBusy = false;
-
     this.balance -= this.currentBet;
     const newHand = [hand.pop()];
     this.playerHands.push(newHand);
@@ -364,67 +440,82 @@ class BlackjackGame {
     newHand.push(this.drawCard());
 
     this.updateUI();
+
+    const score1 = this.calculateScore(hand);
+    const score2 = this.calculateScore(newHand);
+    await this.speak(`You split with a score of ${score1} for hand 1 and ${score2} for hand 2.`);
+
+    this.isBusy = false;
+    this.updateUI();
   }
 
   async dealerTurn() {
     this.gameState = 'dealer-turn';
+    this.isBusy = true;
 
     // Reveal hidden card
-    this.updateCount(this.dealerHand[1]);
+    const hiddenCard = this.dealerHand[1];
+    this.updateCount(hiddenCard);
     this.dom.messageArea.innerText = "Dealer reveals";
     this.updateUI();
-    await this.sleep(this.actionDelay);
+    await this.speak(`The dealer reveals a ${this.getCardName(hiddenCard)}.`);
 
     while (this.calculateScore(this.dealerHand) < 17) {
-      this.dom.messageArea.innerText = "Dealer to act";
-      await this.sleep(this.actionDelay);
       this.dom.messageArea.innerText = "Dealer chooses to Hit";
-      await this.sleep(this.actionDelay);
-      this.dealerHand.push(this.drawCard());
+      const card = this.drawCard();
+      this.dealerHand.push(card);
       this.updateUI();
+      await this.speak(`The dealer hits and is dealt a ${this.getCardName(card)}.`);
     }
-
-    this.dom.messageArea.innerText = "Dealer to act";
-    await this.sleep(this.actionDelay);
 
     const score = this.calculateScore(this.dealerHand);
     if (score > 21) {
       this.dom.messageArea.innerText = "Dealer busts!";
-      await this.sleep(this.actionDelay);
+      // resolveGame will handle the "becuase the dealer busts" part
     } else {
       this.dom.messageArea.innerText = "Dealer chooses to Stand";
-      await this.sleep(this.actionDelay);
+      await this.speak(`The dealer stands with a score of ${score}.`);
     }
 
-    this.resolveGame();
+    await this.resolveGame();
+    this.isBusy = false;
   }
 
-  resolveGame() {
+  async resolveGame() {
     const dealerScore = this.calculateScore(this.dealerHand);
     let results = [];
+    let narrations = [];
 
-    this.playerHands.forEach((hand, index) => {
+    for (let index = 0; index < this.playerHands.length; index++) {
+      const hand = this.playerHands[index];
       const playerScore = this.calculateScore(hand);
       const bet = this.bets[index];
       const prefix = this.playerHands.length > 1 ? `Hero ${index + 1}: ` : '';
       let res = '';
+      let narration = '';
 
       if (playerScore > 21) {
         res = 'Bust';
+        narration = "You lose becuase you bust.";
       } else if (dealerScore > 21) {
         this.balance += bet * 2;
         res = 'Win';
+        narration = "You win becuase the dealer busts.";
       } else if (playerScore > dealerScore) {
         this.balance += bet * 2;
         res = 'Win';
+        narration = `You win because you have a score of ${playerScore} and the dealer has a score of ${dealerScore}.`;
       } else if (playerScore < dealerScore) {
         res = 'Lose';
+        narration = `You lose because you have a score of ${playerScore} and the dealer has a score of ${dealerScore}.`;
       } else {
         this.balance += bet;
         res = 'Push';
+        narration = `It's a push with a score of ${playerScore}.`;
       }
       results.push(prefix + res);
-    });
+      narrations.push(narration);
+    }
 
     this.gameState = 'resolved';
     const netChange = this.balance - this.roundStartingBalance;
@@ -443,6 +534,11 @@ class BlackjackGame {
     }
 
     this.updateUI();
+
+    // Narrate results
+    for (const n of narrations) {
+      await this.speak(n);
+    }
   }
 
   updateUI() {
