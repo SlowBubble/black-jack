@@ -24,8 +24,12 @@ class BlackjackGame {
 
     const urlParams = new URLSearchParams(window.location.search);
     this.numbersOnly = urlParams.get('numbers_only') === '1';
+    this.pauseDealer = urlParams.get('pause_dealer') === '1';
 
     this.voice = null;
+    this.waitingForSpace = false;
+    this.spaceResolver = null;
+
     this.initVoice();
     this.init();
   }
@@ -116,6 +120,7 @@ class BlackjackGame {
       recAction: document.getElementById('rec-action'),
       bettingControls: document.getElementById('betting-controls'),
       actionControls: document.getElementById('action-controls'),
+      proceedBtn: document.getElementById('proceed-btn'),
       messageArea: document.getElementById('message-area')
     };
   }
@@ -126,6 +131,7 @@ class BlackjackGame {
     this.dom.standBtn.addEventListener('click', () => this.stand());
     this.dom.doubleBtn.addEventListener('click', () => this.doubleDown());
     this.dom.splitBtn.addEventListener('click', () => this.split());
+    this.dom.proceedBtn.addEventListener('click', () => this.handleProceed());
 
     // Spacebar shortcut
     window.addEventListener('keydown', (e) => {
@@ -137,7 +143,12 @@ class BlackjackGame {
   }
 
   async handleSpaceShortcut() {
-    if (this.isBusy) return;
+    if (this.isBusy) {
+      if (this.waitingForSpace) {
+        this.handleProceed();
+      }
+      return;
+    }
     if (this.gameState === 'playing') {
       const action = this.getRecommendedAction();
       if (action === 'Hit' && !this.dom.hitBtn.disabled) this.hit();
@@ -147,6 +158,25 @@ class BlackjackGame {
     } else if (this.gameState === 'resolved' || this.gameState === 'betting') {
       await this.deal();
     }
+  }
+
+  handleProceed() {
+    if (this.waitingForSpace && this.spaceResolver) {
+      const resolve = this.spaceResolver;
+      this.spaceResolver = null;
+      this.waitingForSpace = false;
+      this.updateUI(); // Hide button via updateUI
+      resolve();
+    }
+  }
+
+  async waitForSpace() {
+    if (!this.pauseDealer) return;
+    this.waitingForSpace = true;
+    this.updateUI(); // Show button via updateUI
+    return new Promise(resolve => {
+      this.spaceResolver = resolve;
+    });
   }
 
   async sleep(ms) {
@@ -368,9 +398,14 @@ class BlackjackGame {
 
     await this.speak(`You are dealt ${this.getCardNarrative(card)}.`);
 
+    const score = this.calculateScore(hand);
+    if (score > 21) {
+      await this.speak(`You bust because the score is ${score}, which is greater than 21.`);
+    }
+
     this.isBusy = false;
 
-    if (this.calculateScore(hand) >= 21) {
+    if (score >= 21) {
       await this.nextHand();
     } else {
       this.updateUI();
@@ -422,6 +457,10 @@ class BlackjackGame {
     const score = this.calculateScore(hand);
     await this.speak(`You double down with a score of ${score}.`);
 
+    if (score > 21) {
+      await this.speak(`You bust because the score is ${score}, which is greater than 21.`);
+    }
+
     this.isBusy = false;
     await this.nextHand();
   }
@@ -459,6 +498,8 @@ class BlackjackGame {
     this.gameState = 'dealer-turn';
     this.isBusy = true;
 
+    await this.waitForSpace();
+
     // Reveal hidden card
     const hiddenCard = this.dealerHand[1];
     this.updateCount(hiddenCard);
@@ -467,6 +508,7 @@ class BlackjackGame {
     await this.speak(`The dealer reveals ${this.getCardNarrative(hiddenCard)}.`);
 
     while (this.calculateScore(this.dealerHand) < 17) {
+      await this.waitForSpace();
       this.dom.messageArea.innerText = "Dealer chooses to Hit";
       const card = this.drawCard();
       this.dealerHand.push(card);
@@ -474,15 +516,17 @@ class BlackjackGame {
       await this.speak(`The dealer hits and is dealt ${this.getCardNarrative(card)}.`);
     }
 
+    await this.waitForSpace();
     const score = this.calculateScore(this.dealerHand);
     if (score > 21) {
       this.dom.messageArea.innerText = "Dealer busts!";
-      // resolveGame will handle the "becuase the dealer busts" part
+      await this.speak(`Dealer busts because the score is ${score}, which is greater than 21.`);
     } else {
       this.dom.messageArea.innerText = "Dealer chooses to Stand";
       await this.speak(`The dealer stands with a score of ${score}.`);
     }
 
+    await this.waitForSpace();
     await this.resolveGame();
     this.isBusy = false;
   }
@@ -502,11 +546,11 @@ class BlackjackGame {
 
       if (playerScore > 21) {
         res = 'Bust';
-        narration = "You lose becuase you bust.";
+        narration = `${prefix || 'Hero'} busts because the score is ${playerScore}, which is greater than 21.`;
       } else if (dealerScore > 21) {
         this.balance += bet * 2;
         res = 'Win';
-        narration = "You win becuase the dealer busts.";
+        narration = `You win because the dealer busts.`;
       } else if (playerScore > dealerScore) {
         this.balance += bet * 2;
         res = 'Win';
@@ -650,6 +694,18 @@ class BlackjackGame {
       this.dom.actionControls.style.display = 'none';
       this.dom.dealBtn.disabled = this.isBusy;
       if (!this.isBusy) this.dom.dealBtn.classList.add('btn-recommended');
+    }
+
+    // Proceed Button
+    if (this.waitingForSpace) {
+      this.dom.proceedBtn.style.display = 'inline-block';
+      this.dom.proceedBtn.classList.add('btn-recommended');
+      // Hide other controls when proceeding
+      this.dom.bettingControls.style.display = 'none';
+      this.dom.actionControls.style.display = 'none';
+    } else {
+      this.dom.proceedBtn.style.display = 'none';
+      this.dom.proceedBtn.classList.remove('btn-recommended');
     }
   }
 
