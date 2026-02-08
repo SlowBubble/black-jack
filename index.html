@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blackjack Card Counter | Pro Simulator</title>
+  <meta name="description"
+    content="A professional-grade Blackjack simulator with Hi-Lo card counting strategy, running count, and true count tracking.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <div class="main-layout">
+    <div class="game-container">
+      <!-- Dealer Section -->
+      <div class="hand-section">
+        <span class="hand-label">Dealer</span>
+        <div id="dealer-cards" class="cards-display"></div>
+        <div id="dealer-score" class="score-badge">Score: 0</div>
+      </div>
+
+      <div id="message-area" class="status-message"></div>
+
+      <!-- Player Section -->
+      <div id="player-hands-container">
+        <div class="hand-section" id="main-player-hand">
+          <span class="hand-label">Player</span>
+          <div id="player-cards" class="cards-display"></div>
+          <div id="player-score" class="score-badge">Score: 0</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div id="betting-controls">
+          <input type="number" id="bet-amount" class="bet-input" value="1" min="1" step="1">
+          <button id="deal-btn" class="btn btn-success">Deal</button>
+        </div>
+
+        <div id="action-controls" style="display: none;">
+          <button id="hit-btn" class="btn btn-primary">Hit</button>
+          <button id="stand-btn" class="btn btn-danger">Stand</button>
+          <button id="double-btn" class="btn btn-primary">Double</button>
+          <button id="split-btn" class="btn btn-primary" style="display: none;">Split</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel Stats -->
+    <div class="dashboard">
+      <div class="stat-card">
+        <div class="stat-label">Balance</div>
+        <div id="balance" class="stat-value gold">$200</div>
+      </div>
+      <div class="stat-card">
+        <div id="rc-label" class="stat-label">Running Count</div>
+        <div id="running-count" class="stat-value">0</div>
+      </div>
+      <div class="stat-card">
+        <div id="tc-label" class="stat-label">True Count</div>
+        <div id="true-count" class="stat-value">0.00</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Recommended Bet</div>
+        <div id="rec-bet" class="stat-value">$1</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Recommended Action</div>
+        <div id="rec-action" class="stat-value">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Shoe Penetration</div>
+        <div id="shoe-pen" class="stat-value">0%</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
