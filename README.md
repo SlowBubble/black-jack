@@ -1,6 +1,10 @@
 # Goal
 - I want to simulate card counting of heads-up black jack game in the casinos
 
+# m1e
+- Let's remove the suits when displaying the cards
+  - Use color instead (red, black, green and blue)
+
 # m1d
 - Instead of pausing a fixed amount of time, let's redesign the whole flow to narrate (using speech synthesis with a British guy) to clarify things
   - When moving from the "Deal" action, utter "You are dealt a $x and a $y." 
