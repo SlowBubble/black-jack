@@ -206,6 +206,30 @@ class BlackjackGame {
     return score;
   }
 
+  getScoreDisplay(hand) {
+    let lowScore = 0;
+    let aces = 0;
+    for (let card of hand) {
+      if (card.value === 'A') {
+        aces++;
+        lowScore += 1;
+      } else if (['J', 'Q', 'K'].includes(card.value)) {
+        lowScore += 10;
+      } else {
+        lowScore += parseInt(card.value);
+      }
+    }
+
+    if (aces === 0) return lowScore.toString();
+
+    let highScore = lowScore + 10;
+    if (highScore <= 21) {
+      return `${lowScore} / ${highScore}`;
+    } else {
+      return lowScore.toString();
+    }
+  }
+
   deal() {
     const bet = parseInt(this.dom.betAmount.value);
     if (isNaN(bet) || bet <= 0 || bet > this.balance) {
@@ -447,7 +471,7 @@ class BlackjackGame {
 
     // Hands
     this.renderHand(this.dom.dealerCards, this.dealerHand, this.gameState === 'playing');
-    this.dom.dealerScore.innerText = `Score: ${this.gameState === 'playing' ? '?' : this.calculateScore(this.dealerHand)}`;
+    this.dom.dealerScore.innerText = `Score: ${this.gameState === 'playing' ? '?' : this.getScoreDisplay(this.dealerHand)}`;
 
     // Player Hands
     const playerContainer = document.getElementById('player-hands-container');
@@ -473,7 +497,7 @@ class BlackjackGame {
 
       const scoreDiv = document.createElement('div');
       scoreDiv.className = 'score-badge';
-      scoreDiv.innerText = `Score: ${this.calculateScore(hand)}`;
+      scoreDiv.innerText = `Score: ${this.getScoreDisplay(hand)}`;
       handDiv.appendChild(scoreDiv);
 
       playerContainer.appendChild(handDiv);
