@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mean Queen - The Mini-Blackjack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Playfair+Display:wght@700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #f8f9fa;
+      --glass-bg: rgba(255, 255, 255, 0.8);
+      --glass-border: rgba(0, 0, 0, 0.1);
+      --accent-color: #3498db;
+      /* Default Blue */
+      --action-color: #2ecc71;
+      /* Suggested Green */
+      --accent-glow: rgba(52, 152, 219, 0.2);
+      --gold: #f39c12;
+      --text-color: #2d3436;
+      --card-width: 100px;
+      --card-height: 140px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-color);
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(214, 48, 49, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(243, 156, 18, 0.05) 0%, transparent 40%);
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+    }
+
+    .game-container {
+      width: 100%;
+      max-width: 800px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: row;
+      gap: 2rem;
+      align-items: flex-start;
+      z-index: 1;
+    }
+
+    .main-game {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 3.5rem;
+      color: var(--accent-color);
+      text-shadow: 0 0 20px var(--accent-glow);
+      letter-spacing: 2px;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-weight: 300;
+      opacity: 0.7;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+    }
+
+    .stats-bar {
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+      padding: 2rem 1.5rem;
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      min-width: 150px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      position: sticky;
+      top: 2rem;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.6;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--gold);
+    }
+
+    .play-area {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 3rem;
+    }
+
+    .hand-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .hand-label {
+      font-size: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .score-pill {
+      background: var(--accent-color);
+      color: white;
+      padding: 2px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      min-width: 25px;
+      text-align: center;
+    }
+
+    .cards {
+      display: flex;
+      gap: 15px;
+      min-height: var(--card-height);
+      justify-content: center;
+      perspective: 1000px;
+    }
+
+    .card {
+      width: var(--card-width);
+      height: var(--card-height);
+      background: white;
+      border-radius: 10px;
+      color: black;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px;
+      font-weight: 700;
+      font-size: 1.2rem;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      transform-style: preserve-3d;
+      transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.3s;
+    }
+
+    .card.hidden {
+      background: linear-gradient(135deg, #e0e0e0 25%, #f0f0f0 25%, #f0f0f0 50%, #e0e0e0 50%, #e0e0e0 75%, #f0f0f0 75%, #f0f0f0 100%);
+      background-size: 20px 20px;
+      border: 2px solid var(--glass-border);
+    }
+
+    .card.hidden * {
+      visibility: hidden;
+    }
+
+    .card-suit-top {
+      text-align: left;
+    }
+
+    .card-suit-bottom {
+      text-align: right;
+      transform: rotate(180deg);
+    }
+
+    .card-value-center {
+      font-size: 2.5rem;
+      text-align: center;
+      display: flex;
+      align-self: center;
+      justify-content: center;
+      flex-grow: 1;
+      align-items: center;
+    }
+
+    .red-suit {
+      color: #e91e63;
+    }
+
+    .black-suit {
+      color: #333;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    button {
+      padding: 1rem 2.5rem;
+      border-radius: 50px;
+      border: none;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .btn-hit {
+      background: var(--accent-color);
+      color: white;
+      box-shadow: 0 10px 20px rgba(255, 62, 62, 0.3);
+    }
+
+    .btn-hit:hover:not(:disabled) {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(255, 62, 62, 0.5);
+    }
+
+    .btn-stand {
+      background: rgba(0, 0, 0, 0.05);
+      color: var(--text-color);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-stand:hover:not(:disabled) {
+      background: rgba(0, 0, 0, 0.1);
+      transform: translateY(-5px);
+    }
+
+    .btn-deal {
+      background: var(--gold);
+      color: black;
+      box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3);
+      display: none;
+    }
+
+    .btn-deal.show {
+      display: block;
+      background: var(--action-color);
+      /* Green suggests Space will deal */
+      color: white;
+      box-shadow: 0 10px 20px rgba(46, 204, 113, 0.3);
+    }
+
+    /* Highlight class for suggested action */
+    .suggested {
+      background: var(--action-color) !important;
+      color: white !important;
+      box-shadow: 0 10px 20px rgba(46, 204, 113, 0.4) !important;
+      transform: translateY(-2px);
+    }
+
+    button:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .message-area {
+      height: 2rem;
+      text-align: center;
+      font-weight: 600;
+      font-size: 1.2rem;
+      margin-top: 10px;
+      letter-spacing: 1px;
+    }
+
+    .limit-hint {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--glass-bg);
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 0.8rem;
+      border: 1px solid var(--glass-border);
+      opacity: 0.8;
+    }
+
+    /* Responsive */
+    @media (max-width: 800px) {
+      .game-container {
+        flex-direction: column-reverse;
+        align-items: stretch;
+      }
+
+      .stats-bar {
+        position: static;
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 1rem;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+      }
+
+      .card {
+        --card-width: 70px;
+        --card-height: 100px;
+        font-size: 1rem;
+      }
+
+      .card-value-center {
+        font-size: 1.8rem;
+      }
+
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="game-container">
+    <div class="main-game">
+      <header>
+        <h1>MEAN QUEEN</h1>
+        <div class="subtitle">The Mini-Ten Challenge</div>
+      </header>
+
+      <div class="message-area" id="game-message">Ready to play?</div>
+
+      <div class="play-area">
+        <div class="hand-container" id="dealer-hand-container">
+          <div class="hand-label">
+            THE QUEEN'S HAND <span id="dealer-score" class="score-pill">?</span>
+          </div>
+          <div class="cards" id="dealer-cards">
+            <!-- Cards will be injected here -->
+          </div>
+        </div>
+
+        <div class="hand-container" id="player-hand-container">
+          <div class="hand-label">
+            YOUR HAND <span id="player-score" class="score-pill">0</span>
+          </div>
+          <div class="cards" id="player-cards">
+            <!-- Cards will be injected here -->
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="hit-btn" class="btn-hit" disabled>HIT</button>
+        <button id="stand-btn" class="btn-stand" disabled>STAND</button>
+        <button id="deal-btn" class="btn-deal show">NEW ROUND</button>
+      </div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-label">Queen Wins</span>
+        <span id="dealer-wins" class="stat-value">0</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Limit</span>
+        <span class="stat-value" style="color: var(--accent-color)">10</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Your Wins</span>
+        <span id="player-wins" class="stat-value">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="limit-hint">
+    Target: 10 | Deck: A-5 | <strong>Space</strong>: Auto-Play
+  </div>
+
+  <script>
+    const cardsData = [
+      { label: 'A', value: 1 },
+      { label: '2', value: 2 },
+      { label: '3', value: 3 },
+      { label: '4', value: 4 },
+      { label: '5', value: 5 }
+    ];
+    const suits = [
+      { symbol: '♠', color: 'black' },
+      { symbol: '♣', color: 'black' },
+      { symbol: '♥', color: 'red' },
+      { symbol: '♦', color: 'red' }
+    ];
+
+    let deck = [];
+    let playerHand = [];
+    let dealerHand = [];
+    let playerWins = 0;
+    let dealerWins = 0;
+    let isGameOver = true;
+    let voice = null;
+
+    function initVoice() {
+      const findVoice = () => {
+        const voices = window.speechSynthesis.getVoices();
+        // Try to find a British male voice or any secondary voice
+        voice = voices.find(v => (v.lang === 'en-GB' || v.lang === 'en_GB') && v.name.toLowerCase().includes('male'))
+          || voices.find(v => v.lang.includes('GB') && v.name.toLowerCase().includes('male'))
+          || voices.find(v => (v.lang === 'en-GB' || v.lang === 'en_GB'))
+          || voices.find(v => v.lang.includes('GB'))
+          || voices.find(v => v.lang.includes('en'))
+          || voices[0];
+      };
+      if ('speechSynthesis' in window) {
+        if (window.speechSynthesis.onvoiceschanged !== undefined) {
+          window.speechSynthesis.onvoiceschanged = findVoice;
+        }
+        findVoice();
+      }
+    }
+
+    async function speak(text) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      return new Promise((resolve) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        if (voice) utterance.voice = voice;
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.onend = () => resolve();
+        utterance.onerror = () => resolve();
+        window.speechSynthesis.speak(utterance);
+        setTimeout(resolve, 5000);
+      });
+    }
+
+    function getCardNarrative(card) {
+      const name = card.label === 'A' ? 'Ace' : card.label;
+      const article = (name === 'Ace') ? 'an' : 'a';
+      return `${article} ${name}`;
+    }
+
+    const playerCardDir = document.getElementById('player-cards');
+    const dealerCardDir = document.getElementById('dealer-cards');
+    const playerScoreEl = document.getElementById('player-score');
+    const dealerScoreEl = document.getElementById('dealer-score');
+    const messageEl = document.getElementById('game-message');
+    const hitBtn = document.getElementById('hit-btn');
+    const standBtn = document.getElementById('stand-btn');
+    const dealBtn = document.getElementById('deal-btn');
+    const playerWinsEl = document.getElementById('player-wins');
+    const dealerWinsEl = document.getElementById('dealer-wins');
+
+    function createDeck() {
+      const newDeck = [];
+      for (let suit of suits) {
+        for (let card of cardsData) {
+          newDeck.push({ ...card, ...suit });
+        }
+      }
+      return newDeck.sort(() => Math.random() - 0.5);
+    }
+
+    function calculateScore(hand) {
+      return hand.reduce((sum, card) => sum + card.value, 0);
+    }
+
+    function createCardElement(card, isHidden = false) {
+      const div = document.createElement('div');
+      div.className = `card ${isHidden ? 'hidden' : ''}`;
+
+      if (!isHidden) {
+        const suitClass = card.color === 'red' ? 'red-suit' : 'black-suit';
+        div.innerHTML = `
+                    <div class="card-suit-top ${suitClass}">${card.label}${card.symbol}</div>
+                    <div class="card-value-center">${card.label}</div>
+                    <div class="card-suit-bottom ${suitClass}">${card.label}${card.symbol}</div>
+                `;
+      }
+      return div;
+    }
+
+    function highlightSuggestedAction() {
+      // Remove current suggestion
+      hitBtn.classList.remove('suggested');
+      standBtn.classList.remove('suggested');
+      dealBtn.classList.remove('suggested');
+
+      if (isGameOver) {
+        dealBtn.classList.add('suggested');
+      } else {
+        const score = calculateScore(playerHand);
+        if (score <= 7) {
+          hitBtn.classList.add('suggested');
+        } else {
+          standBtn.classList.add('suggested');
+        }
+      }
+    }
+
+    function updateUI(showDealerWhole = false) {
+      playerCardDir.innerHTML = '';
+      playerHand.forEach(card => playerCardDir.appendChild(createCardElement(card)));
+      playerScoreEl.textContent = calculateScore(playerHand);
+
+      dealerCardDir.innerHTML = '';
+      dealerHand.forEach((card, index) => {
+        const isHidden = index === 1 && !showDealerWhole;
+        dealerCardDir.appendChild(createCardElement(card, isHidden));
+      });
+
+      if (showDealerWhole) {
+        dealerScoreEl.textContent = calculateScore(dealerHand);
+      } else {
+        dealerScoreEl.textContent = dealerHand.length > 0 ? dealerHand[0].value + ' + ?' : '?';
+      }
+
+      highlightSuggestedAction();
+    }
+
+    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    async function deal() {
+      if (dealBtn.disabled && isGameOver) return;
+
+      deck = createDeck();
+      playerHand = [];
+      dealerHand = [];
+      isGameOver = false;
+
+      messageEl.textContent = "Dealing cards...";
+      messageEl.style.color = "var(--text-color)";
+
+      hitBtn.disabled = true;
+      standBtn.disabled = true;
+      dealBtn.classList.remove('show');
+
+      updateUI();
+      await sleep(600);
+
+      playerHand = [deck.pop(), deck.pop()];
+      dealerHand = [deck.pop(), deck.pop()];
+
+      updateUI();
+      const score = calculateScore(playerHand);
+      messageEl.textContent = "Your turn. Hit or Stand?";
+      await speak(`You have got ${getCardNarrative(playerHand[0])} and ${getCardNarrative(playerHand[1])}, which gives you a score of ${score}. Hit or Stand?`);
+
+      hitBtn.disabled = false;
+      standBtn.disabled = false;
+    }
+
+    async function hit() {
+      if (isGameOver || hitBtn.disabled) return;
+
+      const card = deck.pop();
+      playerHand.push(card);
+      updateUI();
+
+      const score = calculateScore(playerHand);
+      if (score > 10) {
+        await speak(`You choose to hit. You drew ${getCardNarrative(card)}, which brings your score to ${score}. That is a bust! Queen wins.`);
+        endRound("You Busted! Queen wins.", false);
+      } else {
+        if (score === 10) {
+          await speak(`You choose to hit. You drew ${getCardNarrative(card)}, giving you a perfect score of 10. Stand or take a risk?`);
+          messageEl.textContent = "Perfect 10! Stand or take a risk?";
+        } else {
+          await speak(`You choose to hit. You drew ${getCardNarrative(card)}, which gives you a total score of ${score}.`);
+        }
+      }
+    }
+
+    async function stand() {
+      if (isGameOver || standBtn.disabled) return;
+      isGameOver = true;
+
+      hitBtn.disabled = true;
+      standBtn.disabled = true;
+
+      const playerScore = calculateScore(playerHand);
+      await speak(`You choose to stand with a score of ${playerScore}.`);
+
+      messageEl.textContent = "The Queen reveals her cards...";
+      updateUI(true);
+      let dealerScore = calculateScore(dealerHand);
+      await speak(`The Queen reveals ${getCardNarrative(dealerHand[1])}. Combined with her ${getCardNarrative(dealerHand[0])}, she has a score of ${dealerScore}.`);
+
+      while (dealerScore < 7) {
+        messageEl.textContent = `Queen has ${dealerScore}. She hits...`;
+        await speak(`The Queen has ${dealerScore}, so she must hit.`);
+        await sleep(300);
+        const card = deck.pop();
+        dealerHand.push(card);
+        dealerScore = calculateScore(dealerHand);
+        updateUI(true);
+        await speak(`She draws ${getCardNarrative(card)}, which brings her total score to ${dealerScore}.`);
+      }
+
+      await sleep(500);
+
+      if (dealerScore > 10) {
+        await speak("The Queen has busted! You win the round.");
+        endRound("Queen Busted! You win!", true);
+      } else if (dealerScore > playerScore) {
+        await speak(`The Queen wins with a score of ${dealerScore} against your ${playerScore}.`);
+        endRound(`Queen has ${dealerScore}. Queen wins!`, false);
+      } else if (playerScore > dealerScore) {
+        await speak(`You win with a score of ${playerScore}, beating the Queen's ${dealerScore}.`);
+        endRound(`You beat ${dealerScore}! You win!`, true);
+      } else {
+        await speak(`Both you and the Queen have ${dealerScore}. It is a push.`);
+        endRound(`Both have ${dealerScore}. It's a Tie!`, null);
+      }
+    }
+
+    function endRound(message, playerWon) {
+      isGameOver = true;
+      messageEl.textContent = message;
+
+      if (playerWon === true) {
+        playerWins++;
+        playerWinsEl.textContent = playerWins;
+        messageEl.style.color = "#4caf50";
+      } else if (playerWon === false) {
+        dealerWins++;
+        dealerWinsEl.textContent = dealerWins;
+        messageEl.style.color = "var(--accent-color)";
+      } else {
+        messageEl.style.color = "var(--gold)";
+      }
+
+      hitBtn.disabled = true;
+      standBtn.disabled = true;
+      dealBtn.classList.add('show');
+    }
+
+    hitBtn.addEventListener('click', function () { this.blur(); hit(); });
+    standBtn.addEventListener('click', function () { this.blur(); stand(); });
+    dealBtn.addEventListener('click', function () { this.blur(); deal(); });
+
+    initVoice();
+
+    // Spacebar "Smart Action" Keyboard Shortcut
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+
+        if (isGameOver) {
+          if (!dealBtn.classList.contains('show')) return; // Wait for round to fully end
+          console.log("Space: Starting new round");
+          deal();
+        } else {
+          if (hitBtn.disabled || standBtn.disabled) return; // Wait for deal animation
+          const score = calculateScore(playerHand);
+          if (score <= 7) {
+            console.log(`Space: Score is ${score}, Hitting...`);
+            hit();
+          } else {
+            console.log(`Space: Score is ${score}, Standing...`);
+            stand();
+          }
+        }
+      }
+    });
+
+  </script>
+</body>
+
+</html>

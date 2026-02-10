@@ -1,4 +1,12 @@
-# Goal
+# Goal for Mean Queen
+- In the mean-queen folder, create a game in index.html called Mean Queen
+- It is like Black Jack but don't bother with card counting, because we will just use 1 deck and reset after every round
+  - The deck will just have A, 2, 3, 4, 5, where A will have a value of 1 only (not 11).
+- Don't use dollars, just keep track of how many rounds each player has won
+- Just have "Hit" and "Stand" without "Split" and "Double Down"
+- Instead of 21, have the limit be 10.
+
+# Goal for Black Jack Game
 - I want to simulate card counting of heads-up black jack game in the casinos
 
 # m1f
